@@ -46,18 +46,20 @@ jobs:
         run: |
           python -m src.main generate-site
 
-      - name: Commit data changes
+      - name: Commit and push data changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add data/papers/*.json
-          git diff --staged --quiet || git commit -m "Update papers data $(date +%Y-%m-%d)"
-
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+          git add data/papers/
+          if git diff --staged --quiet; then
+            echo "No new papers to commit."
+          else
+            git commit -m "Update papers data $(date +%Y-%m-%d)"
+            # Rebase onto any commits pushed to the branch while this job ran,
+            # so the push is a fast-forward and won't be rejected.
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v6
