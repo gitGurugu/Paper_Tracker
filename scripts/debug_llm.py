@@ -14,6 +14,7 @@ Or put those three in a .env file in the project root and just run:
   python scripts/debug_llm.py
 """
 
+import json
 import os
 
 import httpx
@@ -64,14 +65,42 @@ INTERESTING = [
 ]
 
 
+def _extract_output_text(data: dict) -> str:
+    """Pull the assistant text out of a Responses API payload."""
+    if isinstance(data.get("output_text"), str):
+        return data["output_text"]
+    chunks = []
+    for item in data.get("output") or []:
+        for part in item.get("content") or []:
+            if isinstance(part.get("text"), str):
+                chunks.append(part["text"])
+    return "".join(chunks)
+
+
 def show(title: str, resp: httpx.Response) -> None:
     print(f"\n### {title}")
     print(f"HTTP {resp.status_code} {resp.reason_phrase}")
     for h in INTERESTING:
         if h in resp.headers:
             print(f"  {h}: {resp.headers[h]}")
+
     body = resp.text
-    print("--- body (first 1500 chars) ---")
+    try:
+        data = json.loads(body)
+    except Exception:
+        data = None
+
+    if isinstance(data, dict):
+        # The actual model that served the request (may differ from requested).
+        print(f"  requested model : {model}")
+        print(f"  responded model : {data.get('model', '(not reported)')}")
+        if data.get("status"):
+            print(f"  status          : {data.get('status')}")
+        answer = _extract_output_text(data)
+        if answer:
+            print(f"--- assistant output text ---\n{answer[:500]}")
+
+    print("--- raw body (first 1500 chars) ---")
     print(body[:1500])
 
 
