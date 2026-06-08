@@ -5,8 +5,8 @@
     "base_url": "/Paper_Tracker"
   },
   "llm": {
-    "provider": "openai",
-    "model": "deepseek-chat",
+    "provider": "claude",
+    "model": "claude-3-5-sonnet-20241022",
     "model_env": "LLM_MODEL",
     "api_key_env": "LLM_API_KEY",
     "base_url_env": "LLM_BASE_URL"
