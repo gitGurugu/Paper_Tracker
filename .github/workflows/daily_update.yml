@@ -40,7 +40,7 @@ jobs:
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
         run: |
-          python -u -m src.main fetch-and-analyze --days 1
+          python -u -m src.main fetch-and-analyze --days 7
 
       - name: Generate static site
         run: |

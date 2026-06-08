@@ -57,7 +57,7 @@
     }
   ],
   "fetch": {
-    "days_back": 1,
+    "days_back": 7,
     "max_papers_per_domain": 50,
     "min_relevance_score": 5
   }
