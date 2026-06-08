@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class SiteConfig(BaseModel):
@@ -19,14 +19,34 @@ class SiteConfig(BaseModel):
 class LLMConfig(BaseModel):
     """LLM provider configuration."""
 
+    model_config = {"protected_namespaces": ()}
+
     provider: Literal["claude", "openai", "ollama", "minimax", "gemini"] = "claude"
     model: str = "claude-sonnet-4-20250514"
+    model_env: str | None = None
     api_key_env: str = "ANTHROPIC_API_KEY"
+    base_url_env: str | None = None
+
+    @model_validator(mode="after")
+    def _resolve_model_from_env(self) -> "LLMConfig":
+        """Override model name from environment variable, if configured."""
+        if self.model_env:
+            env_model = os.getenv(self.model_env)
+            if env_model:
+                self.model = env_model
+        return self
 
     @property
     def api_key(self) -> str | None:
         """Get API key from environment variable."""
         return os.getenv(self.api_key_env)
+
+    @property
+    def base_url(self) -> str | None:
+        """Get API base URL from environment variable, if configured."""
+        if self.base_url_env:
+            return os.getenv(self.base_url_env)
+        return None
 
 
 class DomainConfig(BaseModel):

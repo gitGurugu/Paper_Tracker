@@ -18,7 +18,7 @@ class OpenAIAnalyzer(BaseAnalyzer):
                 f"API key not found. Set {config.llm.api_key_env} environment variable."
             )
 
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAI(api_key=api_key, base_url=config.llm.base_url)
 
     def _call_llm(self, prompt: str) -> str:
         """Call OpenAI API."""
