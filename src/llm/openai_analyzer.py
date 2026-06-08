@@ -21,11 +21,36 @@ class OpenAIAnalyzer(BaseAnalyzer):
         self.client = OpenAI(api_key=api_key, base_url=config.llm.base_url)
 
     def _call_llm(self, prompt: str) -> str:
-        """Call OpenAI API."""
-        response = self.client.chat.completions.create(
-            model=self.config.llm.model,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1024,
-        )
+        """Call the OpenAI-compatible chat completions API.
+
+        GPT-5 series models require ``max_completion_tokens`` and reject the
+        legacy ``max_tokens``; older models / endpoints only accept
+        ``max_tokens``. Try the modern parameter first, then fall back.
+        """
+        messages = [{"role": "user", "content": prompt}]
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.config.llm.model,
+                messages=messages,
+                max_completion_tokens=1024,
+            )
+        except TypeError:
+            # Older openai SDK without the max_completion_tokens kwarg.
+            response = self.client.chat.completions.create(
+                model=self.config.llm.model,
+                messages=messages,
+                max_tokens=1024,
+            )
+        except Exception as e:
+            # Endpoint rejected max_completion_tokens — retry with max_tokens.
+            if "max_completion_tokens" in str(e) or "max_tokens" in str(e):
+                response = self.client.chat.completions.create(
+                    model=self.config.llm.model,
+                    messages=messages,
+                    max_tokens=1024,
+                )
+            else:
+                raise
 
         return response.choices[0].message.content

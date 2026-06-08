@@ -9,11 +9,11 @@ httpx>=0.27.0
 # LLM provider SDK
 # Only the selected provider's SDK is imported at runtime (lazy-loaded in
 # get_analyzer, src/llm/__init__.py). The default install covers the
-# Claude / Anthropic provider, which also serves Anthropic-compatible relays
-# (set base_url via LLM_BASE_URL).
-anthropic>=0.40.0         # provider: claude
+# OpenAI-compatible provider, which serves both OpenAI and third-party /
+# proxy endpoints (set base_url via LLM_BASE_URL).
+openai>=1.0.0             # provider: openai
 
 # Optional providers — uncomment the one you set in data/config.json:
-# openai>=1.0.0             # provider: openai (incl. OpenAI-compatible proxies)
+# anthropic>=0.40.0         # provider: claude
 # ollama>=0.4.0             # provider: ollama (local models)
 # google-generativeai>=0.8.0  # provider: gemini
