@@ -21,36 +21,28 @@ class OpenAIAnalyzer(BaseAnalyzer):
         self.client = OpenAI(api_key=api_key, base_url=config.llm.base_url)
 
     def _call_llm(self, prompt: str) -> str:
-        """Call the OpenAI-compatible chat completions API.
+        """Call the OpenAI-compatible Responses API (POST /v1/responses).
 
-        GPT-5 series models require ``max_completion_tokens`` and reject the
-        legacy ``max_tokens``; older models / endpoints only accept
-        ``max_tokens``. Try the modern parameter first, then fall back.
+        The configured endpoint (e.g. the ccswitch relay) serves the OpenAI
+        *Responses* API used by Codex, not Chat Completions. Returns the
+        concatenated output text.
         """
-        messages = [{"role": "user", "content": prompt}]
+        response = self.client.responses.create(
+            model=self.config.llm.model,
+            input=prompt,
+            max_output_tokens=2048,
+        )
 
-        try:
-            response = self.client.chat.completions.create(
-                model=self.config.llm.model,
-                messages=messages,
-                max_completion_tokens=1024,
-            )
-        except TypeError:
-            # Older openai SDK without the max_completion_tokens kwarg.
-            response = self.client.chat.completions.create(
-                model=self.config.llm.model,
-                messages=messages,
-                max_tokens=1024,
-            )
-        except Exception as e:
-            # Endpoint rejected max_completion_tokens — retry with max_tokens.
-            if "max_completion_tokens" in str(e) or "max_tokens" in str(e):
-                response = self.client.chat.completions.create(
-                    model=self.config.llm.model,
-                    messages=messages,
-                    max_tokens=1024,
-                )
-            else:
-                raise
+        # SDK convenience that joins all output text segments.
+        text = getattr(response, "output_text", None)
+        if text:
+            return text
 
-        return response.choices[0].message.content
+        # Fallback: walk the output items if output_text isn't available.
+        chunks = []
+        for item in getattr(response, "output", None) or []:
+            for part in getattr(item, "content", None) or []:
+                part_text = getattr(part, "text", None)
+                if part_text:
+                    chunks.append(part_text)
+        return "".join(chunks)
